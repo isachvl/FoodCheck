@@ -36,9 +36,15 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.foodcheck.ui.theme.Gray
 import android.graphics.RectF
+import android.widget.Toast
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.view.TransformExperimental
+import androidx.camera.view.transform.CoordinateTransform
+import androidx.camera.view.transform.ImageProxyTransformFactory
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.core.view.doOnLayout
 import java.util.concurrent.atomic.AtomicReference
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -49,9 +55,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
-@OptIn(
-    ExperimentalGetImage::class,
-    TransformExperimental::class
+@OptIn(ExperimentalGetImage::class)
+@androidx.annotation.OptIn(
+    markerClass = [TransformExperimental::class]
 )
 @Composable
 fun MainScreen(
@@ -61,6 +67,11 @@ fun MainScreen(
 ) {
     val scanArea = remember {
         AtomicReference<RectF?>(null)
+    }
+    val transformFactory = remember {
+        ImageProxyTransformFactory().apply {
+            setUsingRotationDegrees(true)
+        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current//Получаем информацию об Android
@@ -99,6 +110,7 @@ fun MainScreen(
                     )
 
                     scaleType = PreviewView.ScaleType.FILL_CENTER
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                 }
 
                 val cameraproviderfuture = ProcessCameraProvider.getInstance(ctx)
@@ -130,7 +142,11 @@ fun MainScreen(
 
                     val barcodeScanner = BarcodeScanning.getClient(
                         BarcodeScannerOptions.Builder()
-                            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                            .setBarcodeFormats(
+                            Barcode.FORMAT_EAN_13,
+                            Barcode.FORMAT_EAN_8,
+                            Barcode.FORMAT_CODE_128
+                        )
                             .build()
                     )
 
@@ -148,7 +164,7 @@ fun MainScreen(
                                 }
                             ) { imageProxy ->
 
-                                if (!scanRequested.compareAndSet(true, false)) {
+                                if (!scanRequested.get()) {
                                     imageProxy.close()
                                     return@setAnalyzer
                                 }
@@ -167,16 +183,66 @@ fun MainScreen(
                                     mediaImage,
                                     rotation
                                 )
+                                val sourceTransform =
+                                    transformFactory.getOutputTransform(imageProxy)
 
                                 when (scanType) {
                                     ScanType.ScanQr -> {
+
                                         barcodeScanner.process(inputImage)
                                             .addOnSuccessListener { barcodes ->
-                                                barcodes.firstOrNull { barcode ->
-                                                    val box = barcode.boundingBox
-                                                    box != null
-                                                }?.rawValue?.let { qrCode ->
-                                                    onCodeScanned?.let { it(qrCode) }
+
+                                                // 1. Получаем координаты нашей рамки
+                                                val area = scanArea.get()
+
+                                                // 2. Получаем систему координат PreviewView
+                                                val targetTransform = previewView.outputTransform
+
+                                                if (area != null && targetTransform != null) {
+
+                                                    // 3. Создаём преобразование:
+                                                    // кадр камеры -> экран камеры
+                                                    val transform = CoordinateTransform(
+                                                        sourceTransform,
+                                                        targetTransform
+                                                    )
+
+                                                    // 4. Ищем первый код внутри рамки
+                                                    val barcode = barcodes.firstOrNull { barcode ->
+
+                                                        val box = barcode.boundingBox
+
+                                                        if (box == null) {
+                                                            false
+                                                        } else {
+
+                                                            // Копируем координаты найденного кода
+                                                            val mappedBox = RectF(box)
+
+                                                            // Переводим их в координаты PreviewView
+                                                            transform.mapRect(mappedBox)
+
+                                                            // Проверяем попадание в нашу рамку
+                                                            area.contains(
+                                                                mappedBox.centerX(),
+                                                                mappedBox.centerY()
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // 5. Возвращаем результат только подходящего кода
+                                                    barcode?.rawValue?.let { code ->
+
+                                                        scanRequested.set(false)
+
+                                                        Toast.makeText(
+                                                            ctx,
+                                                            "Найден QR: $code",
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+
+                                                        onCodeScanned?.invoke(code)
+                                                    }
                                                 }
                                             }
                                             .addOnCompleteListener {
@@ -193,18 +259,28 @@ fun MainScreen(
                             }
                         }
 
-                    try {
-                        cameraProvider.unbindAll()
+                    previewView.doOnLayout {
 
-                        cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            selector,
-                            previewUseCase,
-                            analysisUseCase
-                        )
+                        val viewPort = previewView.viewPort
+                            ?: return@doOnLayout
 
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                        val useCaseGroup = UseCaseGroup.Builder()
+                            .setViewPort(viewPort)
+                            .addUseCase(previewUseCase)
+                            .addUseCase(analysisUseCase)
+                            .build()
+
+                        try {
+                            cameraProvider.unbindAll()
+
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                selector,
+                                useCaseGroup
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
 
                 }, ContextCompat.getMainExecutor(ctx))
@@ -224,12 +300,24 @@ fun MainScreen(
                     color = Gray,
                     shape = RoundedCornerShape(40.dp)
                 )
+                .onGloballyPositioned {coordinates ->
+                    val bounds = coordinates.boundsInParent()
 
+                    scanArea.set(
+                        RectF(
+                            bounds.left,
+                            bounds.top,
+                            bounds.right,
+                            bounds.bottom
+                        )
+                    )
+                }
         )
 
         Button(
-            onClick = { scanRequested.set(true) },
-            modifier = Modifier.align(Alignment.BottomCenter)
+            onClick = { scanRequested.set(true)
+                 },
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
         ) {
             Text("Отсканировать")
         }
