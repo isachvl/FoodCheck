@@ -1,9 +1,9 @@
-
 package com.example.foodcheck
 
 import android.Manifest
 import android.content.pm.PackageManager
 import android.util.Size
+import androidx.compose.ui.tooling.preview.Preview as ComposePreview
 import androidx.camera.core.ExperimentalGetImage
 import android.view.ViewGroup
 import androidx.camera.core.CameraProvider
@@ -23,12 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusModifier
-import androidx.compose.ui.graphics.BlendMode.Companion.Color
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -41,10 +42,19 @@ import androidx.camera.core.UseCaseGroup
 import androidx.camera.view.TransformExperimental
 import androidx.camera.view.transform.CoordinateTransform
 import androidx.camera.view.transform.ImageProxyTransformFactory
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Brush
+
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.sp
 import androidx.core.view.doOnLayout
+import com.example.foodcheck.ui.theme.Whilteo
 import java.util.concurrent.atomic.AtomicReference
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -54,6 +64,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+
 
 @OptIn(ExperimentalGetImage::class)
 @androidx.annotation.OptIn(
@@ -143,10 +154,10 @@ fun MainScreen(
                     val barcodeScanner = BarcodeScanning.getClient(
                         BarcodeScannerOptions.Builder()
                             .setBarcodeFormats(
-                            Barcode.FORMAT_EAN_13,
-                            Barcode.FORMAT_EAN_8,
-                            Barcode.FORMAT_CODE_128
-                        )
+                                Barcode.FORMAT_EAN_13,
+                                Barcode.FORMAT_EAN_8,
+                                Barcode.FORMAT_CODE_128
+                            )
                             .build()
                     )
 
@@ -300,7 +311,7 @@ fun MainScreen(
                     color = Gray,
                     shape = RoundedCornerShape(40.dp)
                 )
-                .onGloballyPositioned {coordinates ->
+                .onGloballyPositioned { coordinates ->
                     val bounds = coordinates.boundsInParent()
 
                     scanArea.set(
@@ -313,13 +324,43 @@ fun MainScreen(
                     )
                 }
         )
-
+        val glassShape = RoundedCornerShape(40.dp)
         Button(
-            onClick = { scanRequested.set(true)
-                 },
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+            onClick = {
+                scanRequested.set(true)
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .size(width = 200.dp, height = 60.dp).background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.35f),
+                            Color(0xFF80CFFF).copy(alpha = 0.20f),
+                            Color.White.copy(alpha = 0.10f)
+                        )
+                    ),
+                    shape = glassShape
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.85f),
+                            Color.White.copy(alpha = 0.15f)
+                        )
+                    ),
+                    shape = glassShape
+                ),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Transparent,
+                contentColor = Color.White
+            ),
+
+
+
         ) {
-            Text("Отсканировать")
+            Text(stringResource(R.string.Scan), fontSize = 20.sp)
         }
     }
 }
