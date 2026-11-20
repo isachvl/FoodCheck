@@ -1,6 +1,7 @@
 package com.example.foodcheck
 
 import android.Manifest
+import android.R.attr.delay
 import android.content.pm.PackageManager
 import android.util.Size
 import androidx.compose.ui.tooling.preview.Preview as ComposePreview
@@ -22,8 +23,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.runtime.Composable
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -42,18 +54,30 @@ import androidx.camera.core.UseCaseGroup
 import androidx.camera.view.TransformExperimental
 import androidx.camera.view.transform.CoordinateTransform
 import androidx.camera.view.transform.ImageProxyTransformFactory
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.core.view.doOnLayout
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.foodcheck.ui.theme.Whilteo
 import java.util.concurrent.atomic.AtomicReference
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -62,7 +86,10 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 
 
@@ -84,18 +111,36 @@ fun MainScreen(
             setUsingRotationDegrees(true)
         }
     }
+    val showDonut = remember {
+        mutableStateOf(false)
+    }
+    val previewHolder = remember {
+        AtomicReference<PreviewView?>(null)
+    }
 
+    val blurFrame = remember {
+        mutableStateOf<ImageBitmap?>(null)
+    }
+
+    val blurRadius = remember {
+        Animatable(0f)
+    }
+
+    val foundCode = remember {
+        mutableStateOf<String?>(null)
+    }
+    val donutComposition = rememberLottieComposition(
+
+        LottieCompositionSpec.RawRes(R.raw.loading)
+    )
     val lifecycleOwner = LocalLifecycleOwner.current//Получаем информацию об Android
     val context = LocalContext.current
-
     val analysisExecutor = remember {
         CoroutineScope(Dispatchers.Default)
     }//Подготавливаем выполнение анализа кадров В корутине
-
     val scanRequested = remember {
         AtomicBoolean(false)
     }
-
     val cameraProviderFuture = remember {
         ProcessCameraProvider.getInstance(context)
     } //Получаем CameraProvider
@@ -107,9 +152,73 @@ fun MainScreen(
         }
     }//DisposableEffect используют, когда нужно выполнить очистку при удалении Composable из композиции.
 
+
+
+
+    LaunchedEffect(showDonut.value) {
+
+        if (showDonut.value) {
+
+            try {
+                // 1. Начинаем без размытия
+                blurRadius.snapTo(0f)
+
+                // 2. Постепенно размываем изображение
+                blurRadius.animateTo(
+                    targetValue = 20f,
+                    animationSpec = tween(450)
+                )
+
+                // 3. Держим полностью размытый снимок 250 мс
+                delay(250)
+
+                // 4. Ждём результат ML Kit максимум 10 секунд
+                val code = withTimeoutOrNull(10_000L) {
+                    snapshotFlow { foundCode.value }
+                        .first { it != null }
+                }
+
+                // 5. Останавливаем сканирование
+                scanRequested.set(false)
+
+                // 6. Плавно убираем размытие
+                blurRadius.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(200)
+                )
+
+                // 7. Убираем фотографию и пончик
+                blurFrame.value = null
+                showDonut.value = false
+
+                // 8. Показываем результат
+                if (code != null) {
+                    Toast.makeText(
+                        context,
+                        "Найден код: $code",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    onCodeScanned?.invoke(code)
+                } else {
+                    Toast.makeText(
+                        context,
+                        "Штрихкод не найден",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            } finally {
+                scanRequested.set(false)
+                blurFrame.value = null
+                showDonut.value = false
+            }
+        }
+    }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+
 
         AndroidView(//View System
             factory = { ctx ->
@@ -120,9 +229,11 @@ fun MainScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
 
+
                     scaleType = PreviewView.ScaleType.FILL_CENTER
                     implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                 }
+                previewHolder.set(previewView)
 
                 val cameraproviderfuture = ProcessCameraProvider.getInstance(ctx)
 
@@ -244,15 +355,9 @@ fun MainScreen(
                                                     // 5. Возвращаем результат только подходящего кода
                                                     barcode?.rawValue?.let { code ->
 
-                                                        scanRequested.set(false)
-
-                                                        Toast.makeText(
-                                                            ctx,
-                                                            "Найден QR: $code",
-                                                            Toast.LENGTH_LONG
-                                                        ).show()
-
-                                                        onCodeScanned?.invoke(code)
+                                                        if (scanRequested.compareAndSet(true, false)) {
+                                                            foundCode.value = code
+                                                        }
                                                     }
                                                 }
                                             }
@@ -300,7 +405,42 @@ fun MainScreen(
             },
             modifier = Modifier.fillMaxSize()
         )
+        blurFrame.value?.let { frame ->
 
+            // Первый слой: размытая фотография целиком
+            Image(
+                bitmap = frame,
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(blurRadius.value.dp)
+            )
+
+            // Второй слой: чёткая фотография внутри рамки
+            Image(
+                bitmap = frame,
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+
+                        val area = scanArea.get()
+
+                        if (area != null) {
+                            clipRect(
+                                left = area.left,
+                                top = area.top,
+                                right = area.right,
+                                bottom = area.bottom
+                            ) {
+                                this@drawWithContent.drawContent()
+                            }
+                        }
+                    }
+            )
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -327,12 +467,36 @@ fun MainScreen(
         val glassShape = RoundedCornerShape(40.dp)
         Button(
             onClick = {
-                scanRequested.set(true)
+
+                if (!showDonut.value) {
+
+                    val bitmap = previewHolder.get()?.bitmap
+
+                    if (bitmap != null && bitmap.width > 0 && bitmap.height > 0) {
+                        foundCode.value = null
+                        // Сохраняем снимок камеры
+                        blurFrame.value = bitmap.asImageBitmap()
+
+                        // Показываем пончик и запускаем размытие
+                        showDonut.value = true
+
+                        // Запускаем ML Kit
+                        scanRequested.set(true)
+
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Камера ещё не готова",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .size(width = 200.dp, height = 60.dp).background(
+                .size(width = 200.dp, height = 60.dp)
+                .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
                             Color.White.copy(alpha = 0.35f),
@@ -361,6 +525,15 @@ fun MainScreen(
 
         ) {
             Text(stringResource(R.string.Scan), fontSize = 20.sp)
+        }
+        if (showDonut.value) {
+            LottieAnimation(
+                composition = donutComposition.value,
+                iterations = LottieConstants.IterateForever,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(110.dp)
+            )
         }
     }
 }

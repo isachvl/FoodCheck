@@ -37,8 +37,7 @@ android {
 }
 
 dependencies {
-    val lottieVersion = "6.6.6"
-    implementation ("com.airbnb.android:lottie:$lottieVersion")
+    implementation("com.airbnb.android:lottie-compose:6.7.1")
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.play.services.mlkit.barcode.scanning)
     implementation(libs.vision.common)
