@@ -1,6 +1,7 @@
 package com.example.foodcheck
 
 import android.os.Bundle
+
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,7 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             FoodCheckTheme {
-                MainScreen(scanType = ScanType.ScanQr,null)
+                MainScreen()
             }
         }
     }

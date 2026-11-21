@@ -1,5 +1,6 @@
 package com.example.foodcheck
 
+
 import android.Manifest
 import android.R.attr.delay
 import android.content.pm.PackageManager
@@ -63,17 +64,19 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-
+import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.sp
 import androidx.core.view.doOnLayout
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -98,11 +101,36 @@ import java.util.concurrent.atomic.AtomicBoolean
     markerClass = [TransformExperimental::class]
 )
 @Composable
-fun MainScreen(
-    scanType: ScanType,
-    onCodeScanned: ((String) -> Unit)? = null
+fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
+    val scanType = ScanType.ScanQr
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-) {
+    LaunchedEffect(state) {
+        when (val currentState = state) {
+
+            is ViewModelMainScreen.ProductState.Success -> {
+                Toast.makeText(
+                    context,
+                    currentState.product.nameRu
+                        ?.takeIf { it.isNotBlank() }
+                        ?: currentState.product.name
+                        ?: "Без названия",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+
+            is ViewModelMainScreen.ProductState.Error -> {
+                Toast.makeText(
+                    context,
+                    currentState.message,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            else -> Unit
+        }
+    }
     val scanArea = remember {
         AtomicReference<RectF?>(null)
     }
@@ -134,7 +162,7 @@ fun MainScreen(
         LottieCompositionSpec.RawRes(R.raw.loading)
     )
     val lifecycleOwner = LocalLifecycleOwner.current//Получаем информацию об Android
-    val context = LocalContext.current
+
     val analysisExecutor = remember {
         CoroutineScope(Dispatchers.Default)
     }//Подготавливаем выполнение анализа кадров В корутине
@@ -193,20 +221,12 @@ fun MainScreen(
 
                 // 8. Показываем результат
                 if (code != null) {
-                    Toast.makeText(
-                        context,
-                        "Найден код: $code",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    viewModel.onBarcodeScanned(code)
 
-                    onCodeScanned?.invoke(code)
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Штрихкод не найден",
-                        Toast.LENGTH_SHORT
-                    ).show()
+
+
                 }
+
 
             } finally {
                 scanRequested.set(false)
@@ -464,6 +484,7 @@ fun MainScreen(
                     )
                 }
         )
+
         val glassShape = RoundedCornerShape(40.dp)
         Button(
             onClick = {
