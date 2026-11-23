@@ -1,5 +1,4 @@
-
-package com.example.foodcheck
+package com.example.foodcheck.internet
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -1,4 +1,4 @@
-package com.example.foodcheck
+package com.example.foodcheck.koin
 
 import android.app.Application
 import org.koin.android.ext.koin.androidContext
