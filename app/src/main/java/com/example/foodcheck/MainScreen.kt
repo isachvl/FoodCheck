@@ -39,7 +39,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +51,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.foodcheck.ui.theme.Gray
 import android.graphics.RectF
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.UseCaseGroup
 import androidx.camera.view.TransformExperimental
 import androidx.camera.view.transform.CoordinateTransform
@@ -60,13 +62,18 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -96,7 +103,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-@OptIn(ExperimentalGetImage::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @androidx.annotation.OptIn(
     markerClass = [TransformExperimental::class]
 )
@@ -105,19 +112,34 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
     val scanType = ScanType.ScanQr
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var showProductInfo = remember {
+        mutableStateOf(false)
+    }
+    var cameraGranted = remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
 
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        cameraGranted.value = granted
+    }
+
+    LaunchedEffect(Unit) {
+        if (!cameraGranted.value) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
     LaunchedEffect(state) {
         when (val currentState = state) {
 
             is ViewModelMainScreen.ProductState.Success -> {
-                Toast.makeText(
-                    context,
-                    currentState.product.nameRu
-                        ?.takeIf { it.isNotBlank() }
-                        ?: currentState.product.name
-                        ?: "Без названия",
-                    Toast.LENGTH_LONG
-                ).show()
+                showProductInfo.value = true
             }
 
             is ViewModelMainScreen.ProductState.Error -> {
@@ -131,6 +153,8 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
             else -> Unit
         }
     }
+
+
     val scanArea = remember {
         AtomicReference<RectF?>(null)
     }
@@ -145,6 +169,9 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
     val previewHolder = remember {
         AtomicReference<PreviewView?>(null)
     }
+
+    val success = state as?
+            ViewModelMainScreen.ProductState.Success
 
     val blurFrame = remember {
         mutableStateOf<ImageBitmap?>(null)
@@ -235,326 +262,372 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
             }
         }
     }
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    if (cameraGranted.value) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
 
 
-        AndroidView(//View System
-            factory = { ctx ->
+            AndroidView(//View System
+                factory = { ctx ->
 
-                val previewView = PreviewView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
+                    val previewView = PreviewView(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
 
 
-                    scaleType = PreviewView.ScaleType.FILL_CENTER
-                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                }
-                previewHolder.set(previewView)
-
-                val cameraproviderfuture = ProcessCameraProvider.getInstance(ctx)
-
-                cameraproviderfuture.addListener({
-                    val cameraProvider = cameraProviderFuture.get()
-
-                    val previewUseCase = Preview.Builder().build().also {
-                        it.surfaceProvider = previewView.surfaceProvider
+                        scaleType = PreviewView.ScaleType.FILL_CENTER
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                     }
+                    previewHolder.set(previewView)
 
-                    val permissionGranted =//просим разрещение
-                        ContextCompat.checkSelfPermission(
-                            ctx,
-                            Manifest.permission.CAMERA
-                        ) == PackageManager.PERMISSION_GRANTED
+                    val cameraproviderfuture = ProcessCameraProvider.getInstance(ctx)
 
-                    if (!permissionGranted) {
-                        return@addListener
-                    }
+                    cameraproviderfuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
 
-                    val selector = when {//выбираем камеру
-                        cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
-                        cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
-                        else -> {
+                        val previewUseCase = Preview.Builder().build().also {
+                            it.surfaceProvider = previewView.surfaceProvider
+                        }
+
+                        val permissionGranted =//просим разрещение
+                            ContextCompat.checkSelfPermission(
+                                ctx,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                        if (!permissionGranted) {
                             return@addListener
                         }
-                    }
 
-                    val barcodeScanner = BarcodeScanning.getClient(
-                        BarcodeScannerOptions.Builder()
-                            .setBarcodeFormats(
-                                Barcode.FORMAT_EAN_13,
-                                Barcode.FORMAT_EAN_8,
-                                Barcode.FORMAT_CODE_128
-                            )
-                            .build()
-                    )
+                        val selector = when {//выбираем камеру
+                            cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
+                            cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
+                            else -> {
+                                return@addListener
+                            }
+                        }
 
-                    val analysisUseCase = ImageAnalysis.Builder()   // Обработка изображения
-                        .setTargetResolution(Size(1280, 720))
-                        .setBackpressureStrategy(
-                            ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
-                        )
-                        .build().also { analysis ->
-                            analysis.setAnalyzer(
-                                { runnable ->
-                                    analysisExecutor.launch {
-                                        runnable.run()
-                                    }
-                                }
-                            ) { imageProxy ->
-
-                                if (!scanRequested.get()) {
-                                    imageProxy.close()
-                                    return@setAnalyzer
-                                }
-
-                                val mediaImage = imageProxy.image
-
-                                if (mediaImage == null) {
-                                    imageProxy.close()
-                                    return@setAnalyzer
-                                }
-
-                                val rotation =
-                                    imageProxy.imageInfo.rotationDegrees
-
-                                val inputImage = InputImage.fromMediaImage(
-                                    mediaImage,
-                                    rotation
+                        val barcodeScanner = BarcodeScanning.getClient(
+                            BarcodeScannerOptions.Builder()
+                                .setBarcodeFormats(
+                                    Barcode.FORMAT_EAN_13,
+                                    Barcode.FORMAT_EAN_8,
+                                    Barcode.FORMAT_CODE_128
                                 )
-                                val sourceTransform =
-                                    transformFactory.getOutputTransform(imageProxy)
+                                .build()
+                        )
 
-                                when (scanType) {
-                                    ScanType.ScanQr -> {
+                        val analysisUseCase = ImageAnalysis.Builder()   // Обработка изображения
+                            .setTargetResolution(Size(1280, 720))
+                            .setBackpressureStrategy(
+                                ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
+                            )
+                            .build().also { analysis ->
+                                analysis.setAnalyzer(
+                                    { runnable ->
+                                        analysisExecutor.launch {
+                                            runnable.run()
+                                        }
+                                    }
+                                ) { imageProxy ->
 
-                                        barcodeScanner.process(inputImage)
-                                            .addOnSuccessListener { barcodes ->
+                                    if (!scanRequested.get()) {
+                                        imageProxy.close()
+                                        return@setAnalyzer
+                                    }
 
-                                                // 1. Получаем координаты нашей рамки
-                                                val area = scanArea.get()
+                                    val mediaImage = imageProxy.image
 
-                                                // 2. Получаем систему координат PreviewView
-                                                val targetTransform = previewView.outputTransform
+                                    if (mediaImage == null) {
+                                        imageProxy.close()
+                                        return@setAnalyzer
+                                    }
 
-                                                if (area != null && targetTransform != null) {
+                                    val rotation =
+                                        imageProxy.imageInfo.rotationDegrees
 
-                                                    // 3. Создаём преобразование:
-                                                    // кадр камеры -> экран камеры
-                                                    val transform = CoordinateTransform(
-                                                        sourceTransform,
-                                                        targetTransform
-                                                    )
+                                    val inputImage = InputImage.fromMediaImage(
+                                        mediaImage,
+                                        rotation
+                                    )
+                                    val sourceTransform =
+                                        transformFactory.getOutputTransform(imageProxy)
 
-                                                    // 4. Ищем первый код внутри рамки
-                                                    val barcode = barcodes.firstOrNull { barcode ->
+                                    when (scanType) {
+                                        ScanType.ScanQr -> {
 
-                                                        val box = barcode.boundingBox
+                                            barcodeScanner.process(inputImage)
+                                                .addOnSuccessListener { barcodes ->
 
-                                                        if (box == null) {
-                                                            false
-                                                        } else {
+                                                    // 1. Получаем координаты нашей рамки
+                                                    val area = scanArea.get()
 
-                                                            // Копируем координаты найденного кода
-                                                            val mappedBox = RectF(box)
+                                                    // 2. Получаем систему координат PreviewView
+                                                    val targetTransform =
+                                                        previewView.outputTransform
 
-                                                            // Переводим их в координаты PreviewView
-                                                            transform.mapRect(mappedBox)
+                                                    if (area != null && targetTransform != null) {
 
-                                                            // Проверяем попадание в нашу рамку
-                                                            area.contains(
-                                                                mappedBox.centerX(),
-                                                                mappedBox.centerY()
-                                                            )
-                                                        }
-                                                    }
+                                                        // 3. Создаём преобразование:
+                                                        // кадр камеры -> экран камеры
+                                                        val transform = CoordinateTransform(
+                                                            sourceTransform,
+                                                            targetTransform
+                                                        )
 
-                                                    // 5. Возвращаем результат только подходящего кода
-                                                    barcode?.rawValue?.let { code ->
+                                                        // 4. Ищем первый код внутри рамки
+                                                        val barcode =
+                                                            barcodes.firstOrNull { barcode ->
 
-                                                        if (scanRequested.compareAndSet(true, false)) {
-                                                            foundCode.value = code
+                                                                val box = barcode.boundingBox
+
+                                                                if (box == null) {
+                                                                    false
+                                                                } else {
+
+                                                                    // Копируем координаты найденного кода
+                                                                    val mappedBox = RectF(box)
+
+                                                                    // Переводим их в координаты PreviewView
+                                                                    transform.mapRect(mappedBox)
+
+                                                                    // Проверяем попадание в нашу рамку
+                                                                    area.contains(
+                                                                        mappedBox.centerX(),
+                                                                        mappedBox.centerY()
+                                                                    )
+                                                                }
+                                                            }
+
+                                                        // 5. Возвращаем результат только подходящего кода
+                                                        barcode?.rawValue?.let { code ->
+
+                                                            if (scanRequested.compareAndSet(
+                                                                    true,
+                                                                    false
+                                                                )
+                                                            ) {
+                                                                foundCode.value = code
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
-                                            .addOnCompleteListener {
-                                                imageProxy.close()
-                                            }
+                                                .addOnCompleteListener {
+                                                    imageProxy.close()
+                                                }
+                                        }
+
+                                        else -> {
+                                            imageProxy.close()
+                                        }
+                                        // Остальные режимы
                                     }
 
-                                    else -> {
-                                        imageProxy.close()
-                                    }
-                                    // Остальные режимы
                                 }
+                            }
 
+                        previewView.doOnLayout {
+
+                            val viewPort = previewView.viewPort
+                                ?: return@doOnLayout
+
+                            val useCaseGroup = UseCaseGroup.Builder()
+                                .setViewPort(viewPort)
+                                .addUseCase(previewUseCase)
+                                .addUseCase(analysisUseCase)
+                                .build()
+
+                            try {
+                                cameraProvider.unbindAll()
+
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    selector,
+                                    useCaseGroup
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
                             }
                         }
 
-                    previewView.doOnLayout {
+                    }, ContextCompat.getMainExecutor(ctx))
 
-                        val viewPort = previewView.viewPort
-                            ?: return@doOnLayout
-
-                        val useCaseGroup = UseCaseGroup.Builder()
-                            .setViewPort(viewPort)
-                            .addUseCase(previewUseCase)
-                            .addUseCase(analysisUseCase)
-                            .build()
-
-                        try {
-                            cameraProvider.unbindAll()
-
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                selector,
-                                useCaseGroup
-                            )
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-
-                }, ContextCompat.getMainExecutor(ctx))
-
-                previewView
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-        blurFrame.value?.let { frame ->
-
-            // Первый слой: размытая фотография целиком
-            Image(
-                bitmap = frame,
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(blurRadius.value.dp)
+                    previewView
+                },
+                modifier = Modifier.fillMaxSize()
             )
+            blurFrame.value?.let { frame ->
 
-            // Второй слой: чёткая фотография внутри рамки
-            Image(
-                bitmap = frame,
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
+                // Первый слой: размытая фотография целиком
+                Image(
+                    bitmap = frame,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(blurRadius.value.dp)
+                )
 
-                        val area = scanArea.get()
+                // Второй слой: чёткая фотография внутри рамки
+                Image(
+                    bitmap = frame,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawWithContent {
 
-                        if (area != null) {
-                            clipRect(
-                                left = area.left,
-                                top = area.top,
-                                right = area.right,
-                                bottom = area.bottom
-                            ) {
-                                this@drawWithContent.drawContent()
+                            val area = scanArea.get()
+
+                            if (area != null) {
+                                clipRect(
+                                    left = area.left,
+                                    top = area.top,
+                                    right = area.right,
+                                    bottom = area.bottom
+                                ) {
+                                    this@drawWithContent.drawContent()
+                                }
                             }
                         }
-                    }
-            )
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(0.85f)
-                .height(160.dp)
-                .border(
-                    width = 10.dp,
-                    color = Gray,
-                    shape = RoundedCornerShape(40.dp)
                 )
-                .onGloballyPositioned { coordinates ->
-                    val bounds = coordinates.boundsInParent()
-
-                    scanArea.set(
-                        RectF(
-                            bounds.left,
-                            bounds.top,
-                            bounds.right,
-                            bounds.bottom
-                        )
-                    )
-                }
-        )
-
-        val glassShape = RoundedCornerShape(40.dp)
-        Button(
-            onClick = {
-
-                if (!showDonut.value) {
-
-                    val bitmap = previewHolder.get()?.bitmap
-
-                    if (bitmap != null && bitmap.width > 0 && bitmap.height > 0) {
-                        foundCode.value = null
-                        // Сохраняем снимок камеры
-                        blurFrame.value = bitmap.asImageBitmap()
-
-                        // Показываем пончик и запускаем размытие
-                        showDonut.value = true
-
-                        // Запускаем ML Kit
-                        scanRequested.set(true)
-
-                    } else {
-                        Toast.makeText(
-                            context,
-                            "Камера ещё не готова",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .size(width = 200.dp, height = 60.dp)
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.35f),
-                            Color(0xFF80CFFF).copy(alpha = 0.20f),
-                            Color.White.copy(alpha = 0.10f)
-                        )
-                    ),
-                    shape = glassShape
-                )
-                .border(
-                    width = 1.dp,
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.85f),
-                            Color.White.copy(alpha = 0.15f)
-                        )
-                    ),
-                    shape = glassShape
-                ),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = Color.White
-            ),
-
-
-
-        ) {
-            Text(stringResource(R.string.Scan), fontSize = 20.sp)
-        }
-        if (showDonut.value) {
-            LottieAnimation(
-                composition = donutComposition.value,
-                iterations = LottieConstants.IterateForever,
+            }
+            Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(110.dp)
+                    .fillMaxWidth(0.85f)
+                    .height(160.dp)
+                    .border(
+                        width = 10.dp,
+                        color = Gray,
+                        shape = RoundedCornerShape(40.dp)
+                    )
+                    .onGloballyPositioned { coordinates ->
+                        val bounds = coordinates.boundsInParent()
+
+                        scanArea.set(
+                            RectF(
+                                bounds.left,
+                                bounds.top,
+                                bounds.right,
+                                bounds.bottom
+                            )
+                        )
+                    }
             )
+
+            val glassShape = RoundedCornerShape(40.dp)
+            if (showProductInfo.value == false) {
+                Button(
+                    onClick = {
+
+                        if (!showDonut.value) {
+
+                            val bitmap = previewHolder.get()?.bitmap
+
+                            if (bitmap != null && bitmap.width > 0 && bitmap.height > 0) {
+                                foundCode.value = null
+                                // Сохраняем снимок камеры
+                                blurFrame.value = bitmap.asImageBitmap()
+
+                                // Показываем пончик и запускаем размытие
+                                showDonut.value = true
+
+                                // Запускаем ML Kit
+                                scanRequested.set(true)
+
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Камера ещё не готова",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .size(width = 200.dp, height = 60.dp)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.35f),
+                                    Color(0xFF80CFFF).copy(alpha = 0.20f),
+                                    Color.White.copy(alpha = 0.10f)
+                                )
+                            ),
+                            shape = glassShape
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.85f),
+                                    Color.White.copy(alpha = 0.15f)
+                                )
+                            ),
+                            shape = glassShape
+                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White
+                    ),
+
+
+                    ) {
+                    Text(stringResource(R.string.Scan), fontSize = 20.sp)
+                }
+            }
+            if (showDonut.value) {
+                LottieAnimation(
+                    composition = donutComposition.value,
+                    iterations = LottieConstants.IterateForever,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(110.dp)
+                )
+            }
+
+
+            if (showProductInfo.value && success != null) {
+
+                Box(
+
+                    modifier = Modifier
+                        .fillMaxHeight(0.85f)
+                        .align(Alignment.Center)
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+
+                ) {
+                    ScannerInfo(
+                        product = success.product,
+                        onbackclick = {
+                            showProductInfo.value = false
+                        }
+                    )
+                }
+            }
         }
-    }
+    } else { Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Для сканирования нужен доступ к камере")
+
+        Button(
+            onClick = {
+                cameraPermissionLauncher.launch(
+                    Manifest.permission.CAMERA
+                )
+            }
+        ) {
+            Text("Разрешить доступ")
+        }
+    }}
 }

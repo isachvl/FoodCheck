@@ -40,7 +40,8 @@ android {
 
 dependencies {
     val ktorVersion = "3.6.0"
-
+    implementation("io.coil-kt.coil3:coil-compose:3.0.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.0")
     implementation("io.ktor:ktor-client-core:${ktorVersion}")
     implementation("io.ktor:ktor-client-okhttp:${ktorVersion}")
     implementation("io.ktor:ktor-client-content-negotiation:${ktorVersion}")
@@ -48,6 +49,8 @@ dependencies {
     implementation("androidx.room:room-runtime:2.8.5")
     implementation("androidx.room:room-ktx:2.8.5")
     ksp ("androidx.room:room-compiler:2.8.5")
+
+
     implementation(libs.koin.compose)
     implementation(libs.koin.compose.viewmodel)
     implementation(platform(libs.koin.bom))
