@@ -1,68 +1,72 @@
+
 <resources>
     <string name="app_name">FoodCheck</string>
     <string name="Error">Error</string>
-    <string name="Scan">to scan</string>
+    <string name="Scan">Scan</string>
     <string name="calories">Calories</string>
     <string name="proteins">Proteins</string>
     <string name="fats">Fats</string>
     <string name="carbohydrates">Carbohydrates</string>
-    <string name="addINfridge">Add in fridge</string>
+    <string name="addINfridge">Add to fridge</string>
     <string name="back">Back</string>
-    <string name="Grocery_accounting">Grocery accounting</string>
-    <string name="Nutritional_value_per_100_g">Nutritional value per 100 g</string>
-    <string name="More_info">More info</string>
+    <string name="Grocery_accounting">Grocery inventory</string>
+    <string name="Nutritional_value_per_100_g">Nutritional values per 100 g</string>
+    <string name="More_info">More information</string>
+
     <!-- Product details -->
-    <string name="product_details_title">Подробная информация</string>
-    <string name="product_details_basic_info">Основная информация</string>
-    <string name="product_details_name">Название</string>
-    <string name="product_details_original_name">Оригинальное название</string>
-    <string name="product_details_manufacturer">Производитель</string>
-    <string name="product_details_quantity">Количество</string>
+    <string name="product_details_title">Product details</string>
+    <string name="product_details_basic_info">Basic information</string>
+    <string name="product_details_name">Product name</string>
+    <string name="product_details_original_name">Original name</string>
+    <string name="product_details_manufacturer">Manufacturer</string>
+    <string name="product_details_quantity">Quantity</string>
     <string name="product_details_nutri_score">Nutri-Score</string>
-    <string name="product_details_ingredients_ru">Состав на русском</string>
+    <string name="product_details_ingredients_ru">Ingredients in Russian</string>
+
     <!-- Nutrition -->
-    <string name="product_details_sugar">Сахар</string>
-    <string name="product_details_salt">Соль</string>
-    <string name="product_details_kcal_value">%1$s ккал</string>
-    <string name="product_details_grams_value">%1$s г</string>
+    <string name="product_details_sugar">Sugar</string>
+    <string name="product_details_salt">Salt</string>
+    <string name="product_details_kcal_value">%1$s kcal</string>
+    <string name="product_details_grams_value">%1$s g</string>
 
     <!-- Ingredients -->
-    <string name="product_details_ingredients_heading">Состав и аллергены</string>
-    <string name="product_details_ingredients">Состав</string>
-    <string name="product_details_allergens">Аллергены</string>
+    <string name="product_details_ingredients_heading">Ingredients and allergens</string>
+    <string name="product_details_ingredients">Ingredients</string>
+    <string name="product_details_allergens">Allergens</string>
 
     <!-- Other -->
-    <string name="product_details_not_specified">Не указано</string>
+    <string name="product_details_not_specified">Not specified</string>
 
-    <!-- Экраны -->
-    <string name="storage_places_title">Места хранения</string>
+    <!-- Storage screens -->
+    <string name="storage_places_title">Storage locations</string>
 
-    <!-- Кнопки -->
-    <string name="storage_back">Назад</string>
-    <string name="storage_add_place">Добавить место</string>
-    <string name="storage_add_product">Добавить продукт</string>
-    <string name="storage_add">Добавить</string>
-    <string name="storage_delete">Удалить</string>
-    <string name="storage_cancel">Отмена</string>
+    <!-- Buttons -->
+    <string name="storage_back">Back</string>
+    <string name="storage_add_place">Add storage location</string>
+    <string name="storage_add_product">Add product</string>
+    <string name="storage_add">Add</string>
+    <string name="storage_delete">Delete</string>
+    <string name="storage_cancel">Cancel</string>
 
-    <!-- Диалоговые окна -->
-    <string name="storage_new_place">Новое место хранения</string>
-    <string name="storage_new_product">Новый продукт</string>
-    <string name="storage_name_label">Название</string>
-    <string name="storage_delete_title">Удаление</string>
-    <string name="storage_delete_message">Удалить «%1$s»?</string>
+    <!-- Dialogs -->
+    <string name="storage_new_place">New storage location</string>
+    <string name="storage_new_product">New product</string>
+    <string name="storage_name_label">Name</string>
+    <string name="storage_delete_title">Delete item</string>
+    <string name="storage_delete_message">Delete “%1$s”?</string>
 
-    <string name="storage_edit_product">Редактировать</string>
-    <string name="storage_save">Сохранить</string>
-    <string name="storage_barcode">Штрихкод</string>
-    <string name="storage_count">Количество единиц</string>
-    <string name="storage_image_url">Ссылка на изображение</string>
-    <!-- Продукты -->
-    <string name="storage_product">продукт</string>
-    <string name="storage_unnamed_product">Без названия</string>
+    <!-- Product editing -->
+    <string name="storage_edit_product">Edit product</string>
+    <string name="storage_save">Save</string>
+    <string name="storage_barcode">Barcode</string>
+    <string name="storage_count">Number of units</string>
+    <string name="storage_image_url">Image URL</string>
 
-    <!-- Пустые списки -->
-    <string name="storage_empty_places">Мест хранения пока нет</string>
-    <string name="storage_empty_products">Продуктов пока нет</string>
+    <!-- Products -->
+    <string name="storage_product">product</string>
+    <string name="storage_unnamed_product">Unnamed product</string>
 
+    <!-- Empty lists -->
+    <string name="storage_empty_places">No storage locations yet</string>
+    <string name="storage_empty_products">No products yet</string>
 </resources>

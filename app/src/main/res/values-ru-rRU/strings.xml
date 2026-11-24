@@ -1,0 +1,72 @@
+
+<resources>
+    <string name="app_name">FoodCheck</string>
+    <string name="Error">Ошибка</string>
+    <string name="Scan">Сканировать</string>
+    <string name="calories">Калории</string>
+    <string name="proteins">Белки</string>
+    <string name="fats">Жиры</string>
+    <string name="carbohydrates">Углеводы</string>
+    <string name="addINfridge">Добавить в холодильник</string>
+    <string name="back">Назад</string>
+    <string name="Grocery_accounting">Учёт продуктов</string>
+    <string name="Nutritional_value_per_100_g">Пищевая ценность на 100 г</string>
+    <string name="More_info">Подробнее</string>
+
+    <!-- Информация о продукте -->
+    <string name="product_details_title">Подробная информация</string>
+    <string name="product_details_basic_info">Основная информация</string>
+    <string name="product_details_name">Название</string>
+    <string name="product_details_original_name">Оригинальное название</string>
+    <string name="product_details_manufacturer">Производитель</string>
+    <string name="product_details_quantity">Количество</string>
+    <string name="product_details_nutri_score">Nutri-Score</string>
+    <string name="product_details_ingredients_ru">Состав на русском</string>
+
+    <!-- Пищевая ценность -->
+    <string name="product_details_sugar">Сахар</string>
+    <string name="product_details_salt">Соль</string>
+    <string name="product_details_kcal_value">%1$s ккал</string>
+    <string name="product_details_grams_value">%1$s г</string>
+
+    <!-- Состав -->
+    <string name="product_details_ingredients_heading">Состав и аллергены</string>
+    <string name="product_details_ingredients">Состав</string>
+    <string name="product_details_allergens">Аллергены</string>
+
+    <!-- Прочее -->
+    <string name="product_details_not_specified">Не указано</string>
+
+    <!-- Экраны хранения -->
+    <string name="storage_places_title">Места хранения</string>
+
+    <!-- Кнопки -->
+    <string name="storage_back">Назад</string>
+    <string name="storage_add_place">Добавить место</string>
+    <string name="storage_add_product">Добавить продукт</string>
+    <string name="storage_add">Добавить</string>
+    <string name="storage_delete">Удалить</string>
+    <string name="storage_cancel">Отмена</string>
+
+    <!-- Диалоговые окна -->
+    <string name="storage_new_place">Новое место хранения</string>
+    <string name="storage_new_product">Новый продукт</string>
+    <string name="storage_name_label">Название</string>
+    <string name="storage_delete_title">Удаление</string>
+    <string name="storage_delete_message">Удалить «%1$s»?</string>
+
+    <!-- Редактирование продукта -->
+    <string name="storage_edit_product">Редактировать продукт</string>
+    <string name="storage_save">Сохранить</string>
+    <string name="storage_barcode">Штрихкод</string>
+    <string name="storage_count">Количество единиц</string>
+    <string name="storage_image_url">Ссылка на изображение</string>
+
+    <!-- Продукты -->
+    <string name="storage_product">продукт</string>
+    <string name="storage_unnamed_product">Без названия</string>
+
+    <!-- Пустые списки -->
+    <string name="storage_empty_places">Мест хранения пока нет</string>
+    <string name="storage_empty_products">Продуктов пока нет</string>
+</resources>
