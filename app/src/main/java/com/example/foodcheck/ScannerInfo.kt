@@ -40,7 +40,11 @@ import com.example.foodcheck.ui.theme.nullColor
 
 
 @Composable
-fun ScannerInfo(product: Product, onbackclick:() -> Unit = {}){
+fun ScannerInfo(
+    product: Product,
+    onbackclick: () -> Unit = {},
+    onAddToStorage: (Product) -> Unit = {}
+) {
     val glassShape = RoundedCornerShape(40.dp)
     val showDetails = remember {
         mutableStateOf(false)
@@ -54,20 +58,27 @@ fun ScannerInfo(product: Product, onbackclick:() -> Unit = {}){
         )
         return
     }
-    Column( modifier = Modifier.background(
-        brush = Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.9f),
-                Color(0xFF80CFFF).copy(alpha = 1f),
-                Color.White.copy(alpha = 0.9f)
+    Column(
+        modifier = Modifier
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.9f),
+                        Color(0xFF80CFFF).copy(alpha = 1f),
+                        Color.White.copy(alpha = 0.9f)
+                    )
+                ),
+                shape = glassShape
             )
-        ),
-        shape = glassShape
-    )
-        .fillMaxSize()
-        .padding(20.dp), verticalArrangement = Arrangement.SpaceBetween, horizontalAlignment = Alignment.CenterHorizontally) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier) {
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier
+        ) {
 
             val imageUrl = product.imageUrl?.takeIf { it.isNotBlank() }
 
@@ -109,109 +120,133 @@ fun ScannerInfo(product: Product, onbackclick:() -> Unit = {}){
                     }
                 }
             }
-            }
-            Text(
-                text = product.nameRu ?.takeIf { it.isNotBlank() }
-                    ?: product.name ?: stringResource(R.string.Error),fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
-            )
-            Text(
-                text = listOfNotNull(
-                    product.brand,
-                    product.quantity
-                ).joinToString(" | "),
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
-            )
+        }
+        Text(
+            text = product.nameRu?.takeIf { it.isNotBlank() }
+                ?: product.name ?: stringResource(R.string.Error),
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = listOfNotNull(
+                product.brand,
+                product.quantity
+            ).joinToString(" | "),
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center
+        )
 
 
-            Text(
-                text =stringResource(R.string.Nutritional_value_per_100_g),
-                fontSize = 19.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Row( modifier = Modifier.fillMaxWidth(),horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    IntemCart(stringResource(R.string.calories), product.nutriments?.calories?.toString())
-                    IntemCart(stringResource(R.string.proteins), product.nutriments?.proteins?.toString())
-
-
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    IntemCart(stringResource(R.string.fats), product.nutriments?.fats?.toString())
-                    IntemCart(stringResource(R.string.carbohydrates), product.nutriments?.carbohydrates?.toString())
-                }
-            }
-
-            Text(
-                text = product.ingredientsRu
-                    ?.takeIf { it.isNotBlank() }
-                    ?: product.ingredients
-                    ?: "Состав не указан",
-                fontSize = 13.sp,
-                maxLines = 3
-            )
-            val interactionSource = remember {
-                MutableInteractionSource()
-            }
-            val isPressed = interactionSource.collectIsPressedAsState()
-            Text(
-                text = stringResource(R.string.More_info),
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center,
-                textDecoration = TextDecoration.Underline,
-
-                color = if (isPressed.value) Color.Blue else Color.Black,
-                modifier = Modifier.clickable(interactionSource = interactionSource,indication = ripple()){showDetails.value = true
-
-
-
-                }
-            )
+        Text(
+            text = stringResource(R.string.Nutritional_value_per_100_g),
+            fontSize = 19.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {Button(onClick = {
-            },
-                modifier = Modifier
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IntemCart(
+                    stringResource(R.string.calories),
+                    product.nutriments?.calories?.toString()
+                )
+                IntemCart(
+                    stringResource(R.string.proteins),
+                    product.nutriments?.proteins?.toString()
+                )
 
-
-                    .size(width = 300.dp, height = 60.dp)
-
-
-                    .border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),elevation = null,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Black
-                ),
-            ) { Text(stringResource(R.string.addINfridge), fontSize = 20.sp)}
-            Button(onClick = {onbackclick()
-            },
-                modifier = Modifier
-
-
-                    .size(width = 300.dp, height = 60.dp)
-
-
-                    .border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),elevation = null,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = Color.Black
-                ),
-            ) { Text(stringResource(R.string.back), fontSize = 20.sp)}
-        }}
 
             }
 
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                IntemCart(stringResource(R.string.fats), product.nutriments?.fats?.toString())
+                IntemCart(
+                    stringResource(R.string.carbohydrates),
+                    product.nutriments?.carbohydrates?.toString()
+                )
+            }
+        }
 
+        Text(
+            text = product.ingredientsRu
+                ?.takeIf { it.isNotBlank() }
+                ?: product.ingredients
+                ?: "Состав не указан",
+            fontSize = 13.sp,
+            maxLines = 3
+        )
+        val interactionSource = remember {
+            MutableInteractionSource()
+        }
+        val isPressed = interactionSource.collectIsPressedAsState()
+        Text(
+            text = stringResource(R.string.More_info),
+            fontSize = 15.sp,
+            textAlign = TextAlign.Center,
+            textDecoration = TextDecoration.Underline,
+
+            color = if (isPressed.value) Color.Blue else Color.Black,
+            modifier = Modifier.clickable(
+                interactionSource = interactionSource,
+                indication = ripple()
+            ) {
+                showDetails.value = true
+
+
+            }
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                onClick = {
+                    onAddToStorage(product)
+                },
+                modifier = Modifier
+
+
+                    .size(width = 300.dp, height = 60.dp)
+
+
+                    .border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),
+                elevation = null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                ),
+            ) { Text(stringResource(R.string.addINfridge), fontSize = 20.sp) }
+            Button(
+                onClick = {
+                    onbackclick()
+                },
+                modifier = Modifier
+
+
+                    .size(width = 300.dp, height = 60.dp)
+
+
+                    .border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),
+                elevation = null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                ),
+            ) { Text(stringResource(R.string.back), fontSize = 20.sp) }
+        }
+    }
+
+}
 
 
 fun nutriScoreColor(score: String?): Color {
@@ -224,15 +259,17 @@ fun nutriScoreColor(score: String?): Color {
         else -> nullColor
     }
 }
+
 @Composable
-fun IntemCart(heading: String, info: String?){
+fun IntemCart(heading: String, info: String?) {
 
     Column(
         modifier = Modifier
             .size(width = 150.dp, height = 60.dp)
             .padding(2.dp)
-            .border(width = 2.dp, color = Color.Gray, shape = RoundedCornerShape(20.dp)),horizontalAlignment = Alignment.CenterHorizontally
-        ,verticalArrangement = Arrangement.Center,
+            .border(width = 2.dp, color = Color.Gray, shape = RoundedCornerShape(20.dp)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = heading,
@@ -268,8 +305,9 @@ fun ScannerInfoPreview() {
         )
     )
 }
+
 @Composable
-fun NutriScoreBadge(score: String?,imageUrl: String?) {
+fun NutriScoreBadge(score: String?, imageUrl: String?) {
     val value = score?.uppercase() ?: "?"
     val color = nutriScoreColor(score)
 
@@ -278,7 +316,9 @@ fun NutriScoreBadge(score: String?,imageUrl: String?) {
 
             .background(color = color, shape = RoundedCornerShape(14.dp))
             .border(1.dp, Color.Black, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 8.dp).then(if (imageUrl == null) Modifier.fillMaxSize() else Modifier),contentAlignment = Alignment.Center
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .then(if (imageUrl == null) Modifier.fillMaxSize() else Modifier),
+        contentAlignment = Alignment.Center
 
     ) {
         Text(
@@ -289,7 +329,7 @@ fun NutriScoreBadge(score: String?,imageUrl: String?) {
         )
 
 
-
-    }}
+    }
+}
 
 

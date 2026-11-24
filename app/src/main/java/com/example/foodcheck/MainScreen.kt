@@ -67,11 +67,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
@@ -88,6 +91,7 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.foodcheck.internet.Product
 import com.example.foodcheck.ui.theme.Whilteo
 import java.util.concurrent.atomic.AtomicReference
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -108,13 +112,15 @@ import java.util.concurrent.atomic.AtomicBoolean
     markerClass = [TransformExperimental::class]
 )
 @Composable
-fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
+fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit = {}, viewModel: ViewModelMainScreen = koinViewModel()) {
     val scanType = ScanType.ScanQr
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var showProductInfo = remember {
+    val showProductInfo = remember {
         mutableStateOf(false)
     }
+
+
     var cameraGranted = remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -139,7 +145,7 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
         when (val currentState = state) {
 
             is ViewModelMainScreen.ProductState.Success -> {
-                showProductInfo.value = true
+                showProductInfo.value  = true
             }
 
             is ViewModelMainScreen.ProductState.Error -> {
@@ -215,47 +221,37 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
         if (showDonut.value) {
 
             try {
-                // 1. Начинаем без размытия
+                // Начинаем без размытия
                 blurRadius.snapTo(0f)
 
-                // 2. Постепенно размываем изображение
+                // Плавно размываем изображение
                 blurRadius.animateTo(
                     targetValue = 20f,
                     animationSpec = tween(450)
                 )
 
-                // 3. Держим полностью размытый снимок 250 мс
-                delay(250)
-
-                // 4. Ждём результат ML Kit максимум 10 секунд
+                // Ждём штрихкод от ML Kit максимум 10 секунд
                 val code = withTimeoutOrNull(10_000L) {
                     snapshotFlow { foundCode.value }
                         .first { it != null }
                 }
 
-                // 5. Останавливаем сканирование
+                // Останавливаем сканирование
                 scanRequested.set(false)
 
-                // 6. Плавно убираем размытие
+                // Сразу запускаем запрос к API
+                if (code != null) {
+                    viewModel.onBarcodeScanned(code)
+                }
+
+                // Пока загружается продукт, убираем размытие
                 blurRadius.animateTo(
                     targetValue = 0f,
                     animationSpec = tween(200)
                 )
 
-                // 7. Убираем фотографию и пончик
-                blurFrame.value = null
-                showDonut.value = false
-
-                // 8. Показываем результат
-                if (code != null) {
-                    viewModel.onBarcodeScanned(code)
-
-
-
-                }
-
-
             } finally {
+                // Очищаем состояние сканирования
                 scanRequested.set(false)
                 blurFrame.value = null
                 showDonut.value = false
@@ -520,7 +516,7 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
             )
 
             val glassShape = RoundedCornerShape(40.dp)
-            if (showProductInfo.value == false) {
+            if (showProductInfo.value == false && !showStorage) {
                 Button(
                     onClick = {
 
@@ -593,7 +589,7 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
             }
 
 
-            if (showProductInfo.value && success != null) {
+            if (showProductInfo.value  && success != null) {
 
                 Box(
 
@@ -608,7 +604,8 @@ fun MainScreen(viewModel: ViewModelMainScreen = koinViewModel()) {
                         product = success.product,
                         onbackclick = {
                             showProductInfo.value = false
-                        }
+                        },
+                        onAddToStorage = onChooseStorage
                     )
                 }
             }

@@ -15,7 +15,8 @@ interface DaoRefrigerator {
     suspend fun insertRefrigerator(
         refrigerator: Refrigerator
     ): Long
-
+    @Query("DELETE FROM refrigerators WHERE id = :refrigeratorId")
+    suspend fun deleteRefrigerator(refrigeratorId: Long)
     @Query("""
         SELECT * FROM refrigerator_products
         WHERE refrigeratorId = :refrigeratorId

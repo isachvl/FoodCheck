@@ -8,6 +8,7 @@
     <string name="carbohydrates">Carbohydrates</string>
     <string name="addINfridge">Add in fridge</string>
     <string name="back">Back</string>
+    <string name="Grocery_accounting">Grocery accounting</string>
     <string name="Nutritional_value_per_100_g">Nutritional value per 100 g</string>
     <string name="More_info">More info</string>
     <!-- Product details -->
@@ -32,5 +33,31 @@
 
     <!-- Other -->
     <string name="product_details_not_specified">Не указано</string>
+
+    <!-- Экраны -->
+    <string name="storage_places_title">Места хранения</string>
+
+    <!-- Кнопки -->
+    <string name="storage_back">Назад</string>
+    <string name="storage_add_place">Добавить место</string>
+    <string name="storage_add_product">Добавить продукт</string>
+    <string name="storage_add">Добавить</string>
+    <string name="storage_delete">Удалить</string>
+    <string name="storage_cancel">Отмена</string>
+
+    <!-- Диалоговые окна -->
+    <string name="storage_new_place">Новое место хранения</string>
+    <string name="storage_new_product">Новый продукт</string>
+    <string name="storage_name_label">Название</string>
+    <string name="storage_delete_title">Удаление</string>
+    <string name="storage_delete_message">Удалить «%1$s»?</string>
+
+    <!-- Продукты -->
+    <string name="storage_product">продукт</string>
+    <string name="storage_unnamed_product">Без названия</string>
+
+    <!-- Пустые списки -->
+    <string name="storage_empty_places">Мест хранения пока нет</string>
+    <string name="storage_empty_products">Продуктов пока нет</string>
 
 </resources>

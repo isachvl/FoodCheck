@@ -1,5 +1,7 @@
 package com.example.foodcheck.koin
 
+import com.example.foodcheck.FoodStorageViewModel
+import com.example.foodcheck.Room.RefrigeratorBD
 import com.example.foodcheck.internet.GetInformation
 import com.example.foodcheck.ViewModelMainScreen
 import com.example.foodcheck.Room.refrigeratorDb
@@ -25,8 +27,9 @@ val mainModules = module {
             expectSuccess = true
         }
     }
+    single { get<RefrigeratorBD>().refrigeratorDao() }
     single{ GetInformation(get()) }
-
+    viewModelOf(::FoodStorageViewModel)
     viewModelOf(::ViewModelMainScreen)
     singleOf(::refrigeratorDb)
 
