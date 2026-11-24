@@ -24,7 +24,8 @@ import com.example.foodcheck.internet.Product
 @Composable
 fun ProductDetails(
     product: Product,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onEditClick: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -167,16 +168,44 @@ fun ProductDetails(
             )
         }
 
+        // Кнопка редактирования
+        if (onEditClick != null) {
+            Button(
+                onClick = onEditClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp)
+                    .border(
+                        2.dp,
+                        Color.Black,
+                        RoundedCornerShape(20.dp)
+                    ),
+                elevation = null,
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                )
+            ) {
+                Text(
+                    text = stringResource(R.string.storage_edit_product),
+                    fontSize = 20.sp
+                )
+            }
+        }
+
+// Кнопка назад
         Button(
             onClick = onBackClick,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp)
                 .border(
-                    width = 2.dp,
-                    color = Color.Black,
-                    shape = RoundedCornerShape(20.dp)
+                    2.dp,
+                    Color.Black,
+                    RoundedCornerShape(20.dp)
                 ),
+            elevation = null,
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent,

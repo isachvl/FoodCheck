@@ -45,6 +45,9 @@ fun ModalNavigationDrawer() {
     val drawerState = rememberDrawerState(
         initialValue = DrawerValue.Closed
     )
+    val showProductInfo = remember {
+        mutableStateOf(false)
+    }
     val productToAdd = remember {
         mutableStateOf<Product?>(null)
     }
@@ -57,7 +60,7 @@ fun ModalNavigationDrawer() {
 
     ModalNavigationDrawer(
 
-        drawerState = drawerState,
+        drawerState = drawerState, gesturesEnabled = !showProductInfo.value && !showStorage.value,
         drawerContent = {
             ModalDrawerSheet( modifier = Modifier
                 .systemBarsPadding()
@@ -132,6 +135,7 @@ fun ModalNavigationDrawer() {
 
             MainScreen(
                 showStorage = showStorage.value,
+                showProductInfo = showProductInfo,
                 onChooseStorage = { product ->
                     productToAdd.value = product
                     showStorage.value = true
@@ -166,7 +170,10 @@ fun ModalNavigationDrawer() {
 
 
             }
-            if (!showStorage.value && drawerState.currentValue == DrawerValue.Closed) {
+            if (!showStorage.value &&
+                !showProductInfo.value &&
+                drawerState.currentValue == DrawerValue.Closed
+            ) {
                 Button(
                     onClick = {
                         scope.launch {

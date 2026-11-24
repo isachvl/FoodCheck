@@ -52,6 +52,11 @@
     <string name="storage_delete_title">Удаление</string>
     <string name="storage_delete_message">Удалить «%1$s»?</string>
 
+    <string name="storage_edit_product">Редактировать</string>
+    <string name="storage_save">Сохранить</string>
+    <string name="storage_barcode">Штрихкод</string>
+    <string name="storage_count">Количество единиц</string>
+    <string name="storage_image_url">Ссылка на изображение</string>
     <!-- Продукты -->
     <string name="storage_product">продукт</string>
     <string name="storage_unnamed_product">Без названия</string>

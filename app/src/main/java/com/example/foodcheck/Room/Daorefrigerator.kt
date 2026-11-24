@@ -3,6 +3,7 @@ package com.example.foodcheck.Room
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -10,7 +11,8 @@ interface DaoRefrigerator {
 
     @Query("SELECT * FROM refrigerators")
     fun getAllRefrigerators(): Flow<List<Refrigerator>>
-
+    @Update
+    suspend fun updateProduct(product: RefrigeratorProduct)
     @Insert
     suspend fun insertRefrigerator(
         refrigerator: Refrigerator

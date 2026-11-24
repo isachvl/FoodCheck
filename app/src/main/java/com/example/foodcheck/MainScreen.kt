@@ -72,6 +72,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -112,13 +113,17 @@ import java.util.concurrent.atomic.AtomicBoolean
     markerClass = [TransformExperimental::class]
 )
 @Composable
-fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit = {}, viewModel: ViewModelMainScreen = koinViewModel()) {
+
+fun MainScreen(
+    showStorage: Boolean = false,
+    showProductInfo: MutableState<Boolean>,
+    onChooseStorage: (Product) -> Unit = {},
+    viewModel: ViewModelMainScreen = koinViewModel()
+) {
     val scanType = ScanType.ScanQr
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val showProductInfo = remember {
-        mutableStateOf(false)
-    }
+
 
 
     var cameraGranted = remember {
@@ -145,7 +150,7 @@ fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit 
         when (val currentState = state) {
 
             is ViewModelMainScreen.ProductState.Success -> {
-                showProductInfo.value  = true
+                showProductInfo.value = true
             }
 
             is ViewModelMainScreen.ProductState.Error -> {
@@ -212,8 +217,6 @@ fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit 
             cameraProvider.unbindAll()
         }
     }//DisposableEffect используют, когда нужно выполнить очистку при удалении Composable из композиции.
-
-
 
 
     LaunchedEffect(showDonut.value) {
@@ -516,7 +519,7 @@ fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit 
             )
 
             val glassShape = RoundedCornerShape(40.dp)
-            if (showProductInfo.value == false && !showStorage) {
+            if (showProductInfo.value == false && !showStorage ) {
                 Button(
                     onClick = {
 
@@ -589,7 +592,7 @@ fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit 
             }
 
 
-            if (showProductInfo.value  && success != null) {
+            if (showProductInfo.value && success != null) {
 
                 Box(
 
@@ -610,21 +613,23 @@ fun MainScreen(showStorage: Boolean = false, onChooseStorage: (Product) -> Unit 
                 }
             }
         }
-    } else { Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Для сканирования нужен доступ к камере")
-
-        Button(
-            onClick = {
-                cameraPermissionLauncher.launch(
-                    Manifest.permission.CAMERA
-                )
-            }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Разрешить доступ")
+            Text("Для сканирования нужен доступ к камере")
+
+            Button(
+                onClick = {
+                    cameraPermissionLauncher.launch(
+                        Manifest.permission.CAMERA
+                    )
+                }
+            ) {
+                Text("Разрешить доступ")
+            }
         }
-    }}
+    }
 }

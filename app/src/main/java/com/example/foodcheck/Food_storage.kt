@@ -245,6 +245,7 @@ fun foodStorage(
     }
 }
 
+
 @Composable
 fun StorageProducts(
     place: Refrigerator,
@@ -255,164 +256,285 @@ fun StorageProducts(
         viewModel.getProducts(place.id)
     }
 
-    val products by productsFlow
-        .collectAsStateWithLifecycle(initialValue = emptyList())
+    val products by productsFlow.collectAsStateWithLifecycle(
+        initialValue = emptyList()
+    )
 
     var showAddDialog by remember {
         mutableStateOf(false)
+    }
+
+    var openedProductId by remember {
+        mutableStateOf<Long?>(null)
+    }
+
+    var editingProductId by remember {
+        mutableStateOf<Long?>(null)
     }
 
     var productToDelete by remember {
         mutableStateOf<RefrigeratorProduct?>(null)
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    // Находим открытую запись в актуальном списке Room
+    val openedRecord = products.firstOrNull {
+        it.id == openedProductId
+    }
 
-        // Заголовок с кнопкой возврата
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+    val openedProduct = openedRecord?.let {
+        remember(it.productJson) {
+            readStoredProduct(it)
+        }
+    }
+
+    // Системная кнопка назад из информации о продукте
+    BackHandler(enabled = openedProductId != null) {
+        openedProductId = null
+    }
+
+    if (openedRecord != null && openedProduct != null) {
+
+        // Открываем тот же экран, что и после сканирования
+        ProductDetails(
+            product = openedProduct,
+            onBackClick = {
+                openedProductId = null
+            },
+            onEditClick = {
+                editingProductId = openedRecord.id
+            }
+        )
+
+    } else {
+
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-
-
             Text(
                 text = place.name,
                 fontSize = 24.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-        }
 
-        Spacer(Modifier.height(15.dp))
+            Spacer(Modifier.height(15.dp))
 
-        // Список продуктов выбранного места
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
 
-            if (products.isEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(
-                            R.string.storage_empty_products
-                        )
-                    )
-                }
-            }
-
-            items(
-                items = products,
-                key = { it.id }
-            ) { savedProduct ->
-
-                val productName = remember(
-                    savedProduct.productJson
-                ) {
-                    getStoredProductName(savedProduct)
-                }
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Color.White.copy(alpha = 0.4f),
-                            RoundedCornerShape(20.dp)
-                        )
-                        .padding(12.dp)
-                ) {
-
-                    Text(
-                        text = productName
-                            ?: savedProduct.barcode
-                            ?: stringResource(
-                                R.string.storage_unnamed_product
-                            ),
-                        fontSize = 20.sp
-                    )
-
-                    TextButton(
-                        onClick = {
-                            productToDelete = savedProduct
-                        }
-                    ) {
+                if (products.isEmpty()) {
+                    item {
                         Text(
                             stringResource(
-                                R.string.storage_delete
+                                R.string.storage_empty_products
                             )
                         )
                     }
                 }
+
+                items(
+                    items = products,
+                    key = { it.id }
+                ) { savedProduct ->
+
+                    val productName = remember(
+                        savedProduct.productJson
+                    ) {
+                        getStoredProductName(savedProduct)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(
+                                Color.White.copy(alpha = 0.4f)
+                            )
+                            .clickable {
+                                openedProductId = savedProduct.id
+                            }
+                            .padding(12.dp)
+                    ) {
+
+                        Text(
+                            text = productName
+                                ?: savedProduct.barcode
+                                ?: stringResource(
+                                    R.string.storage_unnamed_product
+                                ),
+                            fontSize = 20.sp
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+
+
+                            TextButton(
+                                onClick = {
+                                    editingProductId = savedProduct.id
+                                }
+                            ) {
+                                Text(
+                                    stringResource(
+                                        R.string.storage_edit_product
+                                    ), color = Color.Black
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    productToDelete = savedProduct
+                                }
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        R.drawable.trash_can
+                                    ),
+                                    contentDescription = stringResource(
+                                        R.string.storage_delete
+                                    ),
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Button(
+                onClick = {
+                    showAddDialog = true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .border(
+                        2.dp,
+                        Color.Black,
+                        RoundedCornerShape(20.dp)
+                    ),
+                elevation = null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                )
+            ) {
+                Text(
+                    stringResource(
+                        R.string.storage_add_product
+                    )
+                )
+            }
+
+            Button(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp)
+                    .border(
+                        2.dp,
+                        Color.Black,
+                        RoundedCornerShape(20.dp)
+                    ),
+                elevation = null,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Black
+                )
+            ) {
+                Text(stringResource(R.string.storage_back))
             }
         }
-
-        // Добавление продукта
-        Button(
-            onClick = {
-                showAddDialog = true
-            },
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp).border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),elevation = null,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = Color.Black
-            ),
-
-            ) {
-            Text(
-                stringResource(
-                    R.string.storage_add_product
-                )
-            )
-        }
-
-        Button(
-            onClick = onBackClick,
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp).border(width = 2.dp, color = Color.Black, shape = RoundedCornerShape(20.dp)),elevation = null,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Transparent,
-                contentColor = Color.Black
-            ),
-
-            ) {
-            Text(stringResource(R.string.storage_back), color = Color.Black)
-        }
-
     }
 
-    // Окно добавления продукта
+    // Полноценное добавление продукта
     if (showAddDialog) {
-        StorageNameDialog(
-            title = stringResource(
-                R.string.storage_new_product
-            ),
+        ProductEditorDialog(
             onDismiss = {
                 showAddDialog = false
             },
-            onConfirm = { name ->
-                viewModel.addProduct(place.id, name)
+            onSave = { product, barcode, count ->
+                viewModel.addProduct(
+                    refrigeratorId = place.id,
+                    product = product,
+                    barcode = barcode,
+                    count = count
+                )
                 showAddDialog = false
             }
         )
     }
 
-    // Подтверждение удаления продукта
+    // Редактирование сохранённого продукта
+    val editingRecord = products.firstOrNull {
+        it.id == editingProductId
+    }
+
+    editingRecord?.let { record ->
+
+        ProductEditorDialog(
+            initialProduct = readStoredProduct(record),
+            initialBarcode = record.barcode,
+            initialCount = record.count,
+            onDismiss = {
+                editingProductId = null
+            },
+            onSave = { product, barcode, count ->
+                viewModel.updateProduct(
+                    savedProduct = record,
+                    product = product,
+                    barcode = barcode,
+                    count = count
+                )
+                editingProductId = null
+            }
+        )
+    }
+
+    // Подтверждение удаления
     productToDelete?.let { savedProduct ->
         ConfirmDeleteDialog(
             name = getStoredProductName(savedProduct)
                 ?: stringResource(R.string.storage_product),
+
             onDismiss = {
                 productToDelete = null
             },
+
             onConfirm = {
                 viewModel.deleteProduct(savedProduct.id)
+
+                if (openedProductId == savedProduct.id) {
+                    openedProductId = null
+                }
+
                 productToDelete = null
             }
         )
     }
+}
+
+// Преобразование сохранённой записи в Product
+private fun readStoredProduct(
+    savedProduct: RefrigeratorProduct
+): Product? {
+    return runCatching {
+        Json {
+            ignoreUnknownKeys = true
+        }.decodeFromString<Product>(
+            savedProduct.productJson
+        )
+    }.getOrNull()
+        ?: getStoredProductName(savedProduct)?.let { name ->
+            Product(name = name)
+        }
 }
 
 // Получаем название продукта из сохранённого JSON

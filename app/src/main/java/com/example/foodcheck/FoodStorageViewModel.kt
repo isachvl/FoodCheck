@@ -55,6 +55,39 @@ class FoodStorageViewModel(
             dao.deleteProduct(id)
         }
     }
+    fun updateProduct(
+        savedProduct: RefrigeratorProduct,
+        product: Product,
+        barcode: String?,
+        count: Int
+    ) {
+        viewModelScope.launch {
+            dao.updateProduct(
+                savedProduct.copy(
+                    barcode = barcode,
+                    count = count,
+                    productJson = Json.encodeToString(product)
+                )
+            )
+        }
+    }
+    fun addProduct(
+        refrigeratorId: Long,
+        product: Product,
+        barcode: String?,
+        count: Int
+    ) {
+        viewModelScope.launch {
+            dao.insertProduct(
+                RefrigeratorProduct(
+                    refrigeratorId = refrigeratorId,
+                    barcode = barcode,
+                    count = count,
+                    productJson = Json.encodeToString(product)
+                )
+            )
+        }
+    }
     val refrigerators: Flow<List<Refrigerator>> =
         dao.getAllRefrigerators()
 
